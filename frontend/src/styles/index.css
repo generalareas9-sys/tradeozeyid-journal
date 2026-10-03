@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Design tokens.
+ *
+ * These seven colours are the only source of colour in the application
+ * (docs/phase-plan.md, Phase 2; engineering-contract.md §8: "Design tokens are
+ * the only source of colour, spacing and typography. No inline hex values in
+ * components."). tailwind.config.ts maps each one into `theme.extend.colors`.
+ */
+:root {
+  --color-background: #0B0D0F;
+  --color-surface: #13171B;
+  --color-card: #181D22;
+  --color-border: #272D33;
+  --color-accent: #D6A84F;
+  --color-positive: #3FB67A;
+  --color-negative: #D65C5C;
+}
+
+@layer base {
+  html {
+    /* The application is dark-only; this makes native controls, scrollbars and
+       the default canvas agree with --color-background. */
+    color-scheme: dark;
+  }
+
+  body {
+    /* Foreground uses Tailwind's built-in `white`: none of the seven approved
+     tokens is a text colour, and inventing an eighth would breach the token
+     list. Only the seven tokens are declared above. */
+    @apply bg-background font-sans text-white antialiased;
+  }
+}
+
+@layer utilities {
+  /**
+   * Reusable monospace utility for numerical content: prices, money,
+   * percentages and R multiples must be IBM Plex Mono (Phase 2 deliverable).
+   * Tabular figures keep digit columns aligned across rows.
+   */
+  .font-numeric {
+    @apply font-mono tabular-nums;
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}

@@ -1,0 +1,35 @@
+{
+  "name": "tradeozeyid",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "packages/contracts"
+  ],
+  "scripts": {
+    "dev": "npm run build --workspace=packages/contracts && concurrently -n frontend,backend -c cyan,magenta \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
+    "build": "npm run build --workspace=packages/contracts && npm run build --workspace=backend && npm run build --workspace=frontend",
+    "typecheck": "npm run typecheck --workspace=packages/contracts && npm run typecheck --workspace=backend && npm run typecheck --workspace=frontend",
+    "lint": "npm run lint --workspace=packages/contracts && npm run lint --workspace=backend && npm run lint --workspace=frontend",
+    "test": "npm run test --workspace=backend && npm run test --workspace=frontend",
+    "db:migrate": "npm run db:migrate --workspace=backend",
+    "db:rollback": "npm run db:rollback --workspace=backend",
+    "db:generate": "npm run db:generate --workspace=backend",
+    "db:seed": "npm run db:seed --workspace=backend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "drizzle-orm": "^0.33.0"
+  },
+  "overrides": {
+    "nanoid": "^5.0.0"
+  },
+  "resolutions": {
+    "nanoid": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  }
+}

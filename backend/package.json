@@ -1,0 +1,52 @@
+{
+  "name": "@tradeozeyid/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "lint": "eslint src tests",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:rollback": "tsx src/db/rollback.ts",
+    "db:generate": "tsc && drizzle-kit generate",
+    "db:seed": "tsx src/db/seed.ts"
+  },
+  "dependencies": {
+    "@tradeozeyid/contracts": "*",
+    "argon2": "^0.40.3",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "drizzle-orm": "^0.33.0",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "jose": "^5.6.3",
+    "pino": "^9.3.0",
+    "pino-pretty": "^11.2.1",
+    "postgres": "^3.4.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^8.57.0",
+    "@types/cookie-parser": "^1.4.7",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.5.0",
+    "@types/supertest": "^6.0.2",
+    "drizzle-kit": "^0.24.2",
+    "eslint": "^8.57.0",
+    "supertest": "^7.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^2.0.5"
+  },
+  "overrides": {
+    "nanoid": "^5.0.0"
+  }
+}
