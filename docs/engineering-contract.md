@@ -1,7 +1,7 @@
 # TradeOzeyid — Engineering Contract
 
 Status: **LOCKED for Phase 1**
-Last updated: Phase 0.1 (correction pass)
+Last updated: Phase 2 (ADR-014 design direction: light-and-purple)
 Owner: project source of truth for OpenCode
 
 This document is binding. If implementation and this document disagree, the document wins until it is changed deliberately.
@@ -34,6 +34,7 @@ Related documents:
 | ADR-011 | Tests: Vitest (backend unit), Supertest (API), Vitest + React Testing Library (frontend) | Blueprint §4 | Accepted |
 | ADR-012 | No Redis/BullMQ in MVP | Blueprint §5 | Accepted |
 | ADR-013 | npm workspaces | `npm` is available; `pnpm`/`yarn` are not installed. Avoid adding a package manager to the critical path | Accepted |
+| ADR-014 | Frontend design direction: **light** workspace — white cards on a very light lavender canvas, purple/violet accent, near-black primary text. Token table is `docs/phase-plan.md` Phase 2, "Design token system" | The owner changed the direction from the original dark-and-gold palette after reviewing modern light trading-journal references. A light workspace suits long reading and review sessions. Design-system and UI/UX scope only: schema, API contract, security, architecture and testing gates are untouched | Accepted (revised in Phase 2) |
 
 ### Explicitly deferred
 
@@ -351,14 +352,18 @@ Every partial unique rule in `database-schema.md` is expressed this way. Drizzle
 Implemented incrementally but never deferred past the phase listed in `docs/phase-plan.md`:
 
 1. **Passwords**: Argon2id, minimum 10 characters, checked against a breach list when a service is available. Never logged, never returned by any endpoint.
+
+   **Cost parameters (recorded 2026-10-03).** §7.1 fixes the algorithm and the length minimum but not the cost. The OWASP Password Storage Cheat Sheet baseline that ADR-007 cites as its rationale is adopted: `memoryCost` 19,456 KiB (19 MiB), `timeCost` 2, `parallelism` 1, `argon2id`. These are declared once in `backend/src/lib/password.ts` so a future change is a single edit.
+
+   **Breach-list provider.** No external breach-list service is approved (ADR-012 defers external services) and offline development has none. `backend/src/lib/password.ts` therefore exposes a `PasswordBreachChecker` interface with a permissive default, so a provider can be wired later without touching call sites — the same seam the phase plan mandates for email transport.
 2. **Access token**: short-lived JWT (15 min), signed with `JWT_ACCESS_SECRET`, claims `sub`, `sid`, `role`, `iat`, `exp`, `jti`. Delivered in `http_at` cookie, `httpOnly`, `secure` in production, `sameSite=lax`, `path=/api`.
 3. **Refresh token**: opaque 256-bit random string. Only its SHA-256 hash is stored. Delivered in `http_rt` cookie, `httpOnly`, `secure` in production, `sameSite=strict`, `path=/api/v1/auth`. Lifetime 30 days.
 4. **Refresh rotation with reuse detection**: each refresh issues a new token in the same `family_id` and marks the old one rotated. Presenting an already-rotated or revoked token revokes the entire family and returns `TOKEN_REUSE_DETECTED`, forcing a fresh login.
-5. **CSRF** (required because cookies are used): double-submit token. `csrf_token` cookie is readable by JavaScript; every state-changing request must echo it in the `X-CSRF-Token` header. Enforced for `POST`, `PUT`, `PATCH`, `DELETE`.
+5. **CSRF** (required because cookies are used): double-submit token. `csrf_token` cookie is readable by JavaScript; every state-changing request must echo it in the `X-CSRF-Token` header. Enforced for `POST`, `PUT`, `PATCH`, `DELETE`. The token is issued by the unauthenticated bootstrap `GET /auth/csrf`, because every path that would otherwise set it is itself state-changing and therefore guarded (see `api-spec.md` §2.2.1).
 6. **CORS**: explicit origin allowlist from `CORS_ORIGINS`. No wildcard. Credentials enabled.
 7. **Input validation**: every request body, query parameter and route parameter is parsed by a Zod schema before reaching a service. Unknown keys are rejected.
 8. **SQL injection**: all database access goes through Drizzle with bound parameters. String interpolation into SQL is prohibited and reviewed in every diff.
-9. **Rate limiting**: per-IP and per-user on `auth` endpoints (login 10/15min, register 5/hour, password reset 3/hour) and a global limiter (300/min).
+9. **Rate limiting**: per-IP **and** per-user on `auth` endpoints — login 10/15min on both dimensions, register 5/hour per IP, forgot-password 3/hour, reset-password 5/hour — and a global limiter (300/min). The auth limiters are applied in pairs, one per dimension, because a single-dimension key satisfies neither requirement on its own.
 10. **Security headers**: `helmet` defaults, plus `Cache-Control: no-store` on all authenticated API responses.
 11. **Uploads**: MIME allowlist (`image/png`, `image/jpeg`, `image/webp`), magic-byte verification, max 10 MB, filenames never used as storage keys, images re-encoded before serving.
 12. **Secrets**: environment variables only, validated at startup. Startup fails if a required variable is missing. No secret is committed; `.env` is git-ignored; `.env.example` lists names with empty values.
@@ -399,8 +404,8 @@ Rules:
 
 - **`domain` is never set to a public suffix and cookies are never shared across unrelated sites.** The parent-domain form is used only when the API is on a sibling subdomain and the owner has confirmed it is required.
 - **Development relaxation is explicit.** `secure: false` in development is driven by `COOKIE_SECURE=false` in `.env`; the default is `true`. SameSite is `lax` in development so the Vite dev server on a different port can still receive the cookies.
-- **Production is same-origin by design.** The recommended production topology serves the built frontend from the same origin as the API (the API under `/api/v1`), which makes `SameSite=strict` safe and removes CORS from the equation entirely.
-- **If the owner chooses split origins in production** (for example frontend on `app.example.com`, API on `api.example.com`), SameSite must be `none` with `secure: true` for cross-site cookies to work, and the CSRF double-submit token becomes load-bearing rather than defence-in-depth. That is a recorded deviation from the table above and requires an explicit owner decision. See "Unresolved owner decisions" in `docs/README.md`.
+- **Production is same-origin by design, and the owner has approved it (2026-10-03).** The built frontend and the API are served from one public origin, with the API mounted under `/api/v1` on that same origin. This makes `SameSite=strict` safe and removes CORS from the equation entirely. Recorded in `docs/README.md`, "Recorded owner decisions".
+- **Split origins are not the chosen topology.** Had the owner chosen them (for example frontend on `app.example.com`, API on `api.example.com`), SameSite would have to be `none` with `secure: true` for cross-site cookies to work, and the CSRF double-submit token would become load-bearing rather than defence-in-depth. That would be a recorded deviation from the table above and would require a fresh explicit owner decision.
 - CORS `credentials: true` is set only for allowlisted origins, and `CORS_ORIGINS` in production contains the exact frontend origin(s). Wildcards are rejected at startup.
 - `http_rt` is scoped to `path=/api/v1/auth` so it is not attached to every API call, and the frontend must never read it.
 
@@ -428,7 +433,10 @@ The refresh token is **never** sent in response bodies, headers (except `Set-Coo
 - Feature folders mirror backend modules.
 - Server state lives in one cache layer (`lib/api`). No component-local `useEffect` fetching.
 - All monetary values are formatted by one utility. Components never call `toFixed` on a raw API string.
-- Design tokens from Blueprint §18 are the only source of colour, spacing and typography. No inline hex values in components.
+- Design tokens are the only source of colour, spacing and typography. The authoritative token table is `docs/phase-plan.md`, Phase 2, "Design token system". No inline hex, `rgb()` or `hsl()` values in components, and no component defines its own foreground colour: `text` and `text-muted` exist for that.
+- Every text-on-surface pairing must clear WCAG 2.1 AA at rest — 4.5:1 for body text, 3:1 for the edge of an interactive control. Text is never made readable only on hover. Interactive controls use `border-strong`; `border` is reserved for decorative edges such as card outlines and row dividers.
+- Tailwind colour-alpha modifiers (`bg-accent/10`, `text-black/70`) must not be applied to token colours. The tokens are `var()` references, and Tailwind 3.4 discards the alpha and emits no rule at all, so the tint silently disappears. Every tint is an explicit `*-soft` token.
+- Positive and negative never carry meaning alone. Every P&L figure is paired with a sign, glyph or word.
 - No component exceeds a reasonable responsibility boundary: containers fetch and compose, presentational components render and emit events.
 - Every user-visible money or percentage figure is rendered through the formatter that knows the account currency.
 
@@ -499,3 +507,7 @@ A phase is complete only when all of the following are true:
 | Phase 0 | 0 | Initial engineering contract locked |
 | Phase 0.1 | 0.1 | PostgreSQL 18 local target; canonical session derivation; ownership integrity with composite FKs; partial unique indexes; no-FX currency rule; bearer=test-only; cookie topology per env; refresh token lifecycle table; test DB env vars; db:rollback safety |
 | Phase 1 | 1 | Owner decision recorded in §5.3: the 05:00–07:00 UTC period is `tokyo`, because it lies inside Tokyo's defined window (00:00–09:00 UTC). The previous consequence bullet incorrectly claimed the period fell in no window and assigned it to `sydney`. Session windows and the precedence order are unchanged; `backend/src/lib/time.ts` already implemented this rule and was not modified |
+| Phase 2 | 2 | ADR-014: design direction changed from dark-and-gold to light-and-purple at the owner's explicit instruction. §8 now points at the Phase 2 token table instead of Blueprint §18, and adds the WCAG AA contrast rule, the interactive-vs-decorative border rule, the prohibition on Tailwind colour-alpha modifiers over token colours, and the colour-is-never-alone rule for P&L. Database schema, API contract, security requirements, architecture and testing gates are unchanged |
+| Phase 3 | 3 | Owner decision recorded in §7.2 on 2026-10-03: production hosting is **same-origin**, with the API under `/api/v1` on the same public origin. This confirms the topology §7.2 already specified as the design rather than changing it — the cookie table, `SameSite=strict`, `secure`, host-only `domain` and CSRF double-submit are all unchanged, and the split-origins bullet is reframed as the option that was not taken. Local development is untouched and stays cross-origin (`5173` → `3000`, `SameSite=lax`). No security requirement, schema or API change |
+| Phase 3 | 3 | Resolved five Phase 3 conflicts at owner instruction: (1) refresh tokens are **opaque** per §7.3 and ADR-006 — the JWT refresh signing that contradicted this was removed; `JWT_REFRESH_SECRET` is retained in the env contract but no longer signs anything. (2) `api-spec.md` §2.1 is now environment-scoped and agrees with §7.2 (`strict` in production, `lax` in development). (3) §7.9 rate limits now state both dimensions and the api-spec split (forgot-password 3/hour, reset-password 5/hour). (4) Argon2id cost parameters recorded as the OWASP baseline. (5) The breach-list check is an interface seam with a permissive default. §7.1, §7.3 and ADR-007/ADR-006 are otherwise unchanged |
+| Phase 3 | 3 | **New endpoint `GET /auth/csrf`, decided by the owner on 2026-10-03.** Cookie mode had no documented way to obtain the first CSRF token: `csrf_token` was set only by register, login and refresh, all of which are state-changing and therefore guarded by §7.5, so a fresh browser could never satisfy the double-submit rule. The bootstrap is `GET`, so it is not itself guarded, and it is unauthenticated because the token carries no authority and the response contains no user data. Rate limit 60/minute per IP to stop it serving as a token oracle. §7.5 item 5 and `api-spec.md` §2.2.1, §3 and §9.2 record it. No change to the CSRF rule itself, to any cookie attribute, or to any security requirement |
