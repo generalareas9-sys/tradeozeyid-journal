@@ -1,7 +1,7 @@
 ﻿# TradeOzeyid â€” Phase Plan
 
 Status: **LOCKED for Phase 1**
-Last updated: Phase 1 (G5 manual verification recorded)
+Last updated: Phase 2 sign-off — G1–G5 satisfied, phase complete
 
 Each phase lists deliverables, migrations, and the verification gate. A phase is not complete until its gate passes and the owner has run the manual checklist.
 
@@ -64,27 +64,93 @@ Gate status for Phase 1: **G1–G5 satisfied.** G1–G4 are reproducible on dema
 
 ---
 
-## Phase 2 â€” Design system + application shell
+## Phase 2 — Design system + application shell
 
-**Goal**: the professional dark workspace shell exists and every screen will be built inside it.
+**Goal**: the professional light workspace shell exists and every screen will be built inside it.
 
 Deliverables:
 
-- Design tokens from Blueprint Â§18 as CSS custom properties + Tailwind theme: `#0B0D0F`, `#13171B`, `#181D22`, `#272D33`, `#D6A84F`, `#3FB67A`, `#D65C5C`
+- Light-and-purple design token system as CSS custom properties + Tailwind theme: white neutral surfaces, a very light lavender page canvas, and a purple/violet accent
 - Typography: Inter (UI) + IBM Plex Mono (all numerals, prices, R multiples)
 - Core primitives: `Button`, `Input`, `Select`, `DatePicker`, `Dialog`, `Table`, `Card`, `Badge`, `Tabs`, `Toast`, `Skeleton`, `EmptyState`, `StatTile`
 - Money and percent formatters that accept decimal strings and a currency code
 - App shell: sidebar navigation, top bar with account selector placeholder, responsive layout
 - Route skeleton for every MVP area with placeholder pages
+- Dashboard landing layout with clear section hierarchy and honest empty states
 - Money colour rule: positive/negative always paired with a sign or label, never colour alone (accessibility)
+- Contrast rule: every text-on-surface pairing meets WCAG 2.1 AA (4.5:1 body text, 3:1 control edges) at rest, without relying on hover
 
-Gate: G1â€“G5. Manual: shell renders at 1440px and 390px; primitives reviewed visually.
+Gate: G1–G5. Manual: shell renders at 1440px and 390px with no horizontal overflow; primitives reviewed visually on the light surfaces.
+
+#### G5 manual verification — owner-executed 2026-10-03
+
+G5 is defined in the gate legend above as `manual checklist    owner-executed, results reported back`. The owner executed the visual review below on **2026-10-03** and confirmed each result first-hand. **G5: satisfied.**
+
+| # | Check | Where | Owner-reported result | Status |
+| --- | --- | --- | --- | --- |
+| 1 | Desktop Dashboard renders | `/` at 1440px | Confirmed by the owner | **VERIFIED (owner)** |
+| 2 | Mobile layout, no horizontal overflow | `/` at 390px | Confirmed by the owner | **VERIFIED (owner)** |
+| 3 | Mobile navigation drawer opens and closes | hamburger toggle at 390px | Confirmed by the owner | **VERIFIED (owner)** |
+| 4 | Primitives reviewed on the light surfaces | `/dev/primitives` | Confirmed by the owner | **VERIFIED (owner)** |
+
+**Phase 2: COMPLETE.**
+
+Check 4 was performed against the development-only primitives showcase rather than the application itself, because eight of the thirteen primitives (`Input`, `Select`, `DatePicker`, `Dialog`, `Tabs`, `Toast`, `Skeleton`, `StatTile`) are not rendered by any route and so cannot be reached through navigation:
+
+```
+npm run dev            # then open http://localhost:5173/dev/primitives
+```
+
+The showcase is reached through a dynamic import guarded by `import.meta.env.DEV` in `frontend/src/main.tsx`. It is not a registered route, it is not in the navigation, and it is absent from the production bundle (verified against `dist/assets/*.js` after `npm run build`). It composes the real primitives rather than copies, and it shows no trading figures: every placeholder is an em dash paired with a screen-reader "no data" label.
+
+Check 4 covered `Button` across all variants plus its disabled and loading states; `Input`, `Select` and `DatePicker` including their native browser widgets; `Dialog`; `Table`; `Card`; `Badge` across all variants; `Tabs`; `Toast` across all three variants; `Skeleton`; `EmptyState`; `StatTile`; the tinted `--color-positive-soft` and `--color-negative-soft` P&L chips; the purple focus rings and keyboard order; and the subtlety of `--shadow-card`.
+
+Gate status for Phase 2: **G1–G5 satisfied.** G1–G4 are reproducible on demand with `npm run test` (backend 61 passed, frontend 142 passed), `npm run typecheck`, `npm run lint` and `npm run build`. G5 is not reproducible by an agent; it rests solely on the owner's confirmation recorded in the table above.
+
+### Design token system (authoritative)
+
+Each value is declared once, as a CSS custom property in `frontend/src/styles/index.css`, and mapped into `theme.extend.colors` in `frontend/tailwind.config.ts`. No component contains a hex, `rgb()` or `hsl()` value, and no component invents a foreground colour.
+
+| Token | Value | Role |
+| --- | --- | --- |
+| `--color-background` | `#F7F6FC` | Page canvas, very light lavender |
+| `--color-surface` | `#FFFFFF` | Sidebar, top bar, mobile drawer |
+| `--color-card` | `#FFFFFF` | Cards and panels |
+| `--color-border` | `#E7E4F2` | Decorative dividers and card edges |
+| `--color-border-strong` | `#918BA4` | Interactive control borders (3.26:1 on white) |
+| `--color-text` | `#171429` | Primary text, near-black charcoal |
+| `--color-text-muted` | `#5B5670` | Secondary text, accessible muted grey |
+| `--color-accent` | `#6741F7` | Fills, focus rings, active indicators |
+| `--color-accent-strong` | `#4B2ED6` | Accent-coloured **text** on light surfaces |
+| `--color-accent-soft` | `#EFEBFF` | Tinted fills: active navigation, skeletons |
+| `--color-positive` | `#0D7444` | Profit, positive P&L |
+| `--color-positive-soft` | `#E7F4EC` | Tinted fill behind a positive figure or chip |
+| `--color-negative` | `#C2313B` | Loss, negative P&L, error text |
+| `--color-negative-soft` | `#FBEAEC` | Tinted fill behind a negative figure or chip |
+
+Rules that the token set exists to enforce:
+
+1. **`accent` is for fills and rings, never small text.** Accent-coloured text uses `accent-strong`: `accent` on an `accent-soft` fill measures 4.42:1 and fails AA, while `accent-strong` measures 6.76:1.
+2. **Tailwind colour-alpha modifiers are not used** (`bg-accent/10`, `text-black/70` and similar). These tokens are `var()` references, and Tailwind 3.4 silently discards the alpha and emits no rule at all. Every tint is therefore an explicit `*-soft` token.
+3. **Interactive controls use `border-strong`; decorative edges use `border`.** A control edge must be identifiable without colour alone, so it clears WCAG 1.4.11 at 3:1. Card edges and row dividers are decorative and may stay subtle.
+4. **Positive and negative never carry meaning alone.** Every P&L figure is paired with a sign, a glyph or a word, and the direction is available to assistive technology as text.
+5. **No fabricated figures.** A dashboard never renders a sample price, balance, win rate or return. Empty regions state what they will hold and which phase delivers them.
+
+### Design direction change (owner authorised, Phase 2)
+
+The Phase 2 contract originally specified a dark-and-gold workspace: near-black canvas, gold accent. The owner explicitly changed the direction to a light-and-purple trading-journal aesthetic with white cards, subtle neutral borders and restrained shadows.
+
+Rationale: a light workspace suits the long reading and review sessions a trading journal implies, and purple carries the brand accent without the alarm associations that red/green P&L colours need to keep for themselves.
+
+Scope of the change is design-system and UI/UX only. The database schema, API contract, security decisions, architecture, testing gates and phase sequence are unchanged. Typography, the component inventory, the formatters, the route skeleton and the money colour rule all survive the change.
 
 ---
 
 ## Phase 3 â€” Authentication + users
 
 **Goal**: a real, secure session.
+
+Precondition (owner decision recorded 2026-10-03): production hosting is **same-origin**, with the API under `/api/v1` on the same public origin. Cookie and CSRF behaviour therefore follows `engineering-contract.md` §7.2 as written — httpOnly cookies, `SameSite=Strict` in production, CSRF double-submit retained as defence-in-depth. Local development stays cross-origin (`5173` → `3000`) and keeps `SameSite=lax`. See `docs/README.md`, "Recorded owner decisions".
 
 Deliverables:
 
@@ -311,3 +377,5 @@ If any line is missing, the phase is not reported as complete.
 | Phase 0 | 0 | Initial phase plan locked |
 | Phase 0.1 | 0.1 | Phase 1 provisioning checklist; migrations 0003â€“0005 applied in Phase 1 only; migration 0011 (instrument_specs) for Phase 10; migrations 0012â€“0013 for Phase 11; test DB env vars; db:rollback definition; health endpoint alignment |
 | Phase 1 | 1 | Recorded the owner-executed G5 manual verification for Phase 1, dated 2026-10-02: all three checks (`npm run dev`, `Invoke-RestMethod http://localhost:3000/api/v1/health`, and the browser view at `http://localhost:5173/`) confirmed by the owner. Documentation-only: no deliverable, migration, gate definition or checklist requirement was altered |
+| Phase 2 | 2 | Design direction changed from dark-and-gold to light-and-purple at the owner's explicit instruction, recorded as ADR-014 in `engineering-contract.md`, with the authoritative token table added to the Phase 2 section above. Recorded the owner-executed G5 manual verification for Phase 2, dated 2026-10-03: desktop Dashboard at 1440px, mobile layout at 390px, mobile navigation drawer, and the visual review of all thirteen primitives on the light surfaces. Design-system and documentation scope only: no deliverable, migration, gate definition, architecture, security requirement or API/schema decision was altered |
+| Phase 3 | 3 | Precondition cleared before any Phase 3 code: the owner approved **same-origin production hosting** on 2026-10-03 (frontend and API on one public origin, API under `/api/v1`), recorded in `docs/README.md` under "Recorded owner decisions" and in `engineering-contract.md` §7.2. Phase 3 deliverables, tests and gate are unchanged, and it still creates no migrations — 0001–0013 exist from Phase 1 |
