@@ -12,6 +12,9 @@ import healthRoutes from './modules/health/health.routes.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import usersRoutes from './modules/users/users.routes.js';
 import tradingAccountsRoutes from './modules/trading-accounts/trading-accounts.routes.js';
+import tradesRoutes from './modules/trades/trades.routes.js';
+import strategiesRoutes from './modules/strategies/strategies.routes.js';
+import tagsRoutes from './modules/tags/tags.routes.js';
 
 interface AppOptions {
   authMode?: 'cookie' | 'bearer';
@@ -86,6 +89,9 @@ const apiRouter = express.Router();
   apiRouter.use('/auth', authRoutes);
   apiRouter.use('/users', usersRoutes);
   apiRouter.use('/trading-accounts', tradingAccountsRoutes);
+  apiRouter.use('/trades', tradesRoutes);
+  apiRouter.use('/strategies', strategiesRoutes);
+  apiRouter.use('/tags', tagsRoutes);
 
   app.use('/api/v1', apiRouter);
 
