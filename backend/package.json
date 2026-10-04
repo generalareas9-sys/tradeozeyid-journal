@@ -41,6 +41,7 @@
     "drizzle-kit": "^0.24.2",
     "eslint": "^8.57.0",
     "supertest": "^7.0.0",
+    "tough-cookie": "^5.1.2",
     "tsx": "^4.19.0",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.71.0",
