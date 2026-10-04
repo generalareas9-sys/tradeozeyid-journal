@@ -212,6 +212,16 @@ export type CloseTradeInput = z.infer<typeof closeTradeSchema>;
 export type ReopenTradeInput = z.infer<typeof reopenTradeSchema>;
 export type CancelTradeInput = z.infer<typeof cancelTradeSchema>;
 export type ListTradesQuery = z.infer<typeof listTradesQuerySchema>;
+export type TradeTagsInput = z.infer<typeof tradeTagsSchema>;
+
+/**
+ * PUT /trades/:id/tags
+ */
+export const tradeTagsSchema = z
+  .object({
+    tagIds: z.array(z.string().uuid()),
+  })
+  .strict();
 
 /**
  * Validates that a symbol matches an instrument spec for the given broker
