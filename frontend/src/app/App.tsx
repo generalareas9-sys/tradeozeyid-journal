@@ -18,6 +18,10 @@ import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ResetPasswordPage } from '../features/auth/pages/ResetPasswordPage';
 import { HealthPanel } from '../features/health/HealthPanel';
+import { TradeDetailPage } from '../features/trades/TradeDetailPage';
+import { StrategyListPage } from '../features/strategies/StrategyListPage';
+import { StrategyDetailPage } from '../features/strategies/StrategyDetailPage';
+import { TagListPage } from '../features/tags/TagListPage';
 import { matchRoute, navigate, usePathname } from './router';
 
 /**
@@ -52,11 +56,23 @@ function AuthView({ route }: { route: AppRoute }) {
 
 /** Workspace screens. The shell supplies the page's `h1`, so none of these do. */
 function WorkspaceView({ route }: { route: AppRoute }) {
+  // Trade detail is a nested route with params, handle it before the kind switch
+  if (route.path === '/trades/:id') {
+    return <TradeDetailPage />;
+  }
+  if (route.path === '/strategies/:id') {
+    return <StrategyDetailPage />;
+  }
+
   switch (route.kind) {
     case 'health':
       return <HealthPanel />;
     case 'dashboard':
       return <DashboardPage phase={route.phase} description={route.description} />;
+    case 'strategies':
+      return <StrategyListPage />;
+    case 'tags':
+      return <TagListPage />;
     default:
       return <PlaceholderPage phase={route.phase} description={route.description} />;
   }
