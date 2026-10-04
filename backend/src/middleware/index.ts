@@ -1,11 +1,12 @@
 export { requestIdMiddleware } from './requestId.js';
 export { errorMiddleware, notFoundMiddleware } from './error.js';
-export { csrfMiddleware } from './csrf.js';
+export { createCsrfMiddleware } from './csrf.js';
 export {
   createRateLimiter,
   loginRateLimiter,
   registerRateLimiter,
-  passwordResetRateLimiter,
+  forgotPasswordRateLimiter,
+  resetPasswordRateLimiter,
   globalRateLimiter,
 } from './rateLimit.js';
 export { authMiddleware, optionalAuth, requireRole, type AuthenticatedRequest } from './auth.js';
