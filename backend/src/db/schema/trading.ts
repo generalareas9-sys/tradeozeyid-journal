@@ -26,7 +26,7 @@ import {
   tradeDirectionEnum,
   tradeStatusEnum,
 } from './enums.js';
-import { strategies, tags } from './strategy.js';
+import { strategies, tags, strategyRules } from './strategy.js';
 
 export const tradingAccounts = pgTable(
   'trading_accounts',
@@ -371,3 +371,5 @@ export const tradeReviews = pgTable(
     ),
   }),
 );
+
+export { strategies, strategyRules, tags };
