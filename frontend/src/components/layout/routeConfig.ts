@@ -23,7 +23,11 @@ export type RouteKind =
   /** The Phase 1 foundation health check, preserved from before the shell. */
   | 'health'
   /** Signed-out authentication screens (Phase 3). */
-  | 'auth';
+  | 'auth'
+  /** Strategies list and detail (Phase 7). */
+  | 'strategies'
+  /** Tags list (Phase 7). */
+  | 'tags';
 
 export interface AppRoute {
   /** Absolute path. `:param` segments are supported for nested screens. */
@@ -81,7 +85,16 @@ export const routes: readonly AppRoute[] = [
       'Reusable trade setups and their ordered rule checklists. Part of the TradeOzeyid workspace.',
     phase: 7,
     group: 'workspace',
-    kind: 'placeholder',
+    kind: 'strategies',
+  },
+  {
+    path: '/strategies/:id',
+    title: 'Strategy detail',
+    description:
+      'One strategy in full: information, ordered rule checklist, trade count. Part of the TradeOzeyid workspace.',
+    phase: 7,
+    group: 'workspace',
+    kind: 'strategies',
   },
   {
     path: '/tags',
@@ -90,7 +103,7 @@ export const routes: readonly AppRoute[] = [
       'User-scoped labels with categories, used to slice the journal. Part of the TradeOzeyid workspace.',
     phase: 7,
     group: 'workspace',
-    kind: 'placeholder',
+    kind: 'tags',
   },
   {
     path: '/journal',
