@@ -70,11 +70,22 @@ Collection:
 
 ### 2.1 Cookies
 
-| Cookie | Contents | Attributes |
-| --- | --- | --- |
-| `http_at` | JWT access token | `httpOnly`, `secure` (prod), `sameSite=lax`, `path=/api`, 15 min |
-| `http_rt` | Opaque refresh token | `httpOnly`, `secure` (prod), `sameSite=strict`, `path=/api/v1/auth`, 30 days |
-| `csrf_token` | Random CSRF token | readable by JS, `sameSite=lax`, `path=/`, 30 days |
+Attributes are **environment-scoped**. The environment-scoped authority is `engineering-contract.md` §7.2; this table restates it for the API reader and must not diverge from it.
+
+| Cookie | Contents | Path | Lifetime |
+| --- | --- | --- | --- |
+| `http_at` | JWT access token | `/api` | 15 min |
+| `http_rt` | Opaque refresh token | `/api/v1/auth` | 30 days |
+| `csrf_token` | Random CSRF token | `/` | 30 days |
+
+| | `http_at` | `http_rt` | `csrf_token` |
+| --- | --- | --- | --- |
+| **Production (same-origin)** | `httpOnly`, `secure`, `SameSite=Strict` | `httpOnly`, `secure`, `SameSite=Strict` | `secure`, `SameSite=Strict`, **readable by JS** |
+| **Local development** (cross-origin `5173` → `3000`) | `httpOnly`, `secure=false`, `SameSite=Lax` | `httpOnly`, `secure=false`, `SameSite=Lax` | `secure=false`, `SameSite=Lax`, **readable by JS** |
+
+`domain` is never set in any environment (host-only). `csrf_token` is deliberately **not** `httpOnly`: §2.2 requires JavaScript to read it and echo it in `X-CSRF-Token`. It carries no authority on its own.
+
+Production `secure` is always true. Development relaxes it only through an explicit `COOKIE_SECURE=false` in `.env`; the default is `true`.
 
 ### 2.2 CSRF
 
@@ -87,6 +98,16 @@ X-CSRF-Token: <value of csrf_token cookie>
 Failure returns `403 CSRF_FAILED`. Requests authenticated solely by an `Authorization: Bearer` header skip this check, which keeps API testing with Supertest straightforward.
 
 The CSRF token is rotated on login and on refresh.
+
+#### 2.2.1 Obtaining the first token
+
+`GET /auth/csrf` is the bootstrap. It sets `csrf_token` and returns the same value in the body, so the client can echo it in `X-CSRF-Token`.
+
+This endpoint exists because the token cannot be obtained any other way: the cookie is set only after register, login and refresh, and all three are themselves state-changing, so without a bootstrap a fresh browser could never satisfy §2.2. `GET /auth/csrf` is `GET`, so §2.2 does not guard it.
+
+It is unauthenticated by design. The token grants no authority on its own — §2.1 notes it "carries no authority on its own", and it only ever satisfies the double-submit comparison — so there is nothing to protect and no user data in the response. Rate limit 60/minute per IP, to stop it being used as a token oracle.
+
+The frontend HTTP client calls it lazily: immediately before the first unsafe request of a page load, and again only if the `csrf_token` cookie is absent. A visitor who only reads never triggers it. No speculative call is made on page load or on route change.
 
 ### 2.3 Session rules
 
@@ -131,6 +152,7 @@ Browsers always use cookies. See `engineering-contract.md` Â§7.1 and Â§7.2 f
 | `POST` | `/auth/logout` | 3 |
 | `POST` | `/auth/logout-all` | 3 |
 | `GET` | `/auth/me` | 3 |
+| `GET` | `/auth/csrf` | 3 |
 | `POST` | `/auth/forgot-password` | 3 |
 | `POST` | `/auth/reset-password` | 3 |
 | `POST` | `/auth/change-password` | 3 |
@@ -556,6 +578,12 @@ Revokes every refresh token for the user. `204`.
 #### `GET /auth/me`
 
 `200` â†’ user resource. `401 UNAUTHENTICATED` when no valid access token.
+
+#### `GET /auth/csrf`
+
+Unauthenticated bootstrap for the double-submit token (§2.2.1). `200` → `{ "data": { "csrfToken": "<token>" } }`, setting `csrf_token` to the same value. Idempotent: an existing cookie may be replaced with a fresh token. No authentication, no CSRF check, no user data. Rate limit 60/minute per IP.
+
+Each call returns a new value. The server keeps no record of issued tokens — §2.2 is a comparison of the two values the client presents — so rotation on login and refresh replaces the value in the browser rather than revoking an older one. That is sound under the same-origin, `SameSite=strict` topology in `engineering-contract.md` §7.2, where §2.1's "carries no authority on its own" makes the token defence-in-depth. It would not be sufficient for the split-origin topology §7.2 records as the option that was not taken.
 
 #### `POST /auth/forgot-password`
 
