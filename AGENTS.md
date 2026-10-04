@@ -118,6 +118,10 @@ Do not summarise instead of showing output. Do not omit failures.
 
 ## 7. Current state
 
-Phase 0 is complete; Phase 0.1 correction pass applied. Blueprint, engineering contract, database schema, API specification, and phase plan are locked. No application code exists yet.
+Phases 0, 0.1, 1 and 2 are complete. Phase 1 G1–G5 were verified by the owner on 2026-10-02; Phase 2 G1–G5 were verified on 2026-10-03, including the visual review of every UI primitive.
 
-**Next action: Phase 1 — Project foundation** (`docs/phase-plan.md`). Owner must complete the provisioning checklist at the start of Phase 1 before any code is written.
+The UI direction is **light-and-purple**, changed from the original dark-and-gold at the owner's instruction (ADR-014). The authoritative token table is `docs/phase-plan.md`, Phase 2, "Design token system".
+
+`frontend/src/dev/PrimitivesShowcase.tsx` is a **development-only** review page at `/dev/primitives`. It is not a route, is not in the navigation, and is absent from the production bundle. Do not register it as a route and do not treat it as application code.
+
+**Next action: Phase 3 — Authentication + users** (`docs/phase-plan.md`). Its precondition is already satisfied: the owner approved **same-origin production hosting** on 2026-10-03, recorded in `docs/README.md` under "Recorded owner decisions". Implement the cookie and CSRF behaviour from `docs/engineering-contract.md` §7.2 as written — httpOnly cookies, `SameSite=Strict` in production, CSRF double-submit retained as defence-in-depth. Phase 3 creates no migrations: 0001–0013 already exist from Phase 1.
