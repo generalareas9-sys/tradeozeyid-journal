@@ -5,33 +5,64 @@
 /**
  * Design tokens.
  *
- * These seven colours are the only source of colour in the application
- * (docs/phase-plan.md, Phase 2; engineering-contract.md §8: "Design tokens are
- * the only source of colour, spacing and typography. No inline hex values in
- * components."). tailwind.config.ts maps each one into `theme.extend.colors`.
+ * The authoritative token table is `docs/phase-plan.md`, Phase 2, "Design token
+ * system" (ADR-014 in `docs/engineering-contract.md`). These declarations are
+ * the only source of colour in the application: §8 forbids inline hex, `rgb()`
+ * and `hsl()` values in components.
+ *
+ * Direction: a light workspace. White cards sit on a very light lavender canvas
+ * so they read as raised without heavy borders, the brand accent is purple, and
+ * positive/negative stay reserved for P&L so the accent never competes with a
+ * loss.
+ *
+ * Contrast was measured, not estimated. Every foreground/background pairing used
+ * in the application clears WCAG 2.1 AA (4.5:1 body, 3:1 control edges) at rest.
  */
 :root {
-  --color-background: #0B0D0F;
-  --color-surface: #13171B;
-  --color-card: #181D22;
-  --color-border: #272D33;
-  --color-accent: #D6A84F;
-  --color-positive: #3FB67A;
-  --color-negative: #D65C5C;
+  /* Neutrals */
+  --color-background: #F7F6FC;
+  --color-surface: #FFFFFF;
+  --color-card: #FFFFFF;
+  --color-border: #E7E4F2;
+  --color-border-strong: #918BA4;
+
+  /* Foreground. These two exist so no component has to invent a text colour. */
+  --color-text: #171429;
+  --color-text-muted: #5B5670;
+
+  /* Accent. `accent` fills and rings; `accent-strong` is the only purple
+     permitted as text; `accent-soft` is the tinted fill beneath both. */
+  --color-accent: #6741F7;
+  --color-accent-strong: #4B2ED6;
+  --color-accent-soft: #EFEBFF;
+
+  /* Profit and loss. Never the sole carrier of meaning — see §8. */
+  --color-positive: #0D7444;
+  --color-positive-soft: #E7F4EC;
+  --color-negative: #C2313B;
+  --color-negative-soft: #FBEAEC;
+
+  /* Restrained elevation, tinted with the text colour instead of pure black. */
+  --shadow-card: 0 1px 2px 0 rgb(23 20 41 / 0.04), 0 4px 12px -2px rgb(23 20 41 / 0.06);
 }
 
 @layer base {
   html {
-    /* The application is dark-only; this makes native controls, scrollbars and
-       the default canvas agree with --color-background. */
-    color-scheme: dark;
+    /* The application is light-only. This makes native controls, scrollbars,
+       form-control pickers and the default canvas agree with --color-background
+       instead of falling back to the dark UA default. */
+    color-scheme: light;
   }
 
   body {
-    /* Foreground uses Tailwind's built-in `white`: none of the seven approved
-     tokens is a text colour, and inventing an eighth would breach the token
-     list. Only the seven tokens are declared above. */
-    @apply bg-background font-sans text-white antialiased;
+    @apply bg-background font-sans text-text antialiased;
+  }
+
+  /* The UA renders the date field's picker indicator and the select arrow in
+     its own colours, which stay dark on a dark-agnostic surface. */
+  input[type='date']::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.55;
   }
 }
 
