@@ -6,9 +6,12 @@ import { getEnv } from './config/index.js';
 import { getLogger } from './lib/logger.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
 import { errorMiddleware, notFoundMiddleware } from './middleware/error.js';
-import { csrfMiddleware } from './middleware/csrf.js';
+import { createCsrfMiddleware } from './middleware/csrf.js';
 import { globalRateLimiter } from './middleware/rateLimit.js';
 import healthRoutes from './modules/health/health.routes.js';
+import authRoutes from './modules/auth/auth.routes.js';
+import usersRoutes from './modules/users/users.routes.js';
+import tradingAccountsRoutes from './modules/trading-accounts/trading-accounts.routes.js';
 
 interface AppOptions {
   authMode?: 'cookie' | 'bearer';
@@ -70,11 +73,19 @@ export function createApp(options: AppOptions = {}): express.Express {
     next();
   });
 
-  const apiRouter = express.Router();
+const apiRouter = express.Router();
 
   apiRouter.use(healthRoutes);
 
-  apiRouter.use(csrfMiddleware);
+  // engineering-contract.md §7.1: the CSRF skip keys off the application's
+  // authMode, not off NODE_ENV. `authMode` defaults to cookie, so a
+  // production/development listener always enforces double-submit.
+  const effectiveAuthMode = options.authMode ?? 'cookie';
+  apiRouter.use(createCsrfMiddleware(effectiveAuthMode));
+
+  apiRouter.use('/auth', authRoutes);
+  apiRouter.use('/users', usersRoutes);
+  apiRouter.use('/trading-accounts', tradingAccountsRoutes);
 
   app.use('/api/v1', apiRouter);
 
