@@ -25,6 +25,17 @@ export class UnauthenticatedError extends AppError {
   }
 }
 
+/**
+ * Login failure (api-spec.md §5). The message is deliberately vague: it must
+ * not reveal whether the email exists, so it is identical for "no such account"
+ * and "wrong password".
+ */
+export class InvalidCredentialsError extends AppError {
+  constructor() {
+    super('INVALID_CREDENTIALS', 'Invalid email or password', 401);
+  }
+}
+
 export class TokenExpiredError extends AppError {
   constructor() {
     super('TOKEN_EXPIRED', 'Access token expired', 401);
