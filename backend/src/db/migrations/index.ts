@@ -12,6 +12,7 @@ import * as m0010 from './0010_create_trade_children.js';
 import * as m0011 from './0011_create_instrument_specs.js';
 import * as m0012 from './0012_create_journal.js';
 import * as m0013 from './0013_create_trade_reviews.js';
+import * as m0014 from './0014_create_risk_presets.js';
 
 /**
  * The canonical migration sequence (docs/database-schema.md §8, "Migration
@@ -31,6 +32,7 @@ import * as m0013 from './0013_create_trade_reviews.js';
  * 0011 create_instrument_specs
  * 0012 create_journal
  * 0013 create_trade_reviews
+ * 0014 create_risk_presets
  */
 export const migrations: readonly Migration[] = [
   { name: '0001_enable_extensions', ...m0001 },
@@ -46,6 +48,7 @@ export const migrations: readonly Migration[] = [
   { name: '0011_create_instrument_specs', ...m0011 },
   { name: '0012_create_journal', ...m0012 },
   { name: '0013_create_trade_reviews', ...m0013 },
+  { name: '0014_create_risk_presets', ...m0014 },
 ];
 
 export function findMigration(name: string): Migration | undefined {
