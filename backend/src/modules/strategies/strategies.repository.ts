@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gt, inArray, isNull, lt, ne, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gt, inArray, isNull, lt, ne, sql, sum } from 'drizzle-orm';
 import { getDb } from '../../db/index.js';
 import { strategies, strategyRules, trades } from '../../db/schema/trading.js';
 import { ConflictError, NotFoundError } from '../../lib/errors.js';
@@ -475,3 +475,51 @@ export async function deleteRuleById(strategyId: string, ruleId: string): Promis
 }
 
 import { generateId } from '../../lib/ids.js';
+import { formatMoney } from '../../lib/money.js';
+
+/**
+ * Gets strategy statistics.
+ */
+export async function getStrategyStats(
+  userId: string,
+  strategyId: string
+): Promise<{ netPnl: string | null; winRate: number | null; profitFactor: string | null; averageR: string | null } | null> {
+  const tradesList = await getDb()
+    .select({
+      pnl: trades.pnl,
+      rMultiple: trades.rMultiple,
+    })
+    .from(trades)
+    .where(
+      and(
+        eq(trades.strategyId, strategyId),
+        eq(trades.userId, userId),
+        isNull(trades.deletedAt),
+        eq(trades.status, 'closed'),
+      )
+    );
+
+  if (tradesList.length === 0) {
+    return { netPnl: '0.0000000000', winRate: 0, profitFactor: null, averageR: '0.0000' };
+  }
+
+  const closedTrades = tradesList;
+  const totalPnl = closedTrades.reduce((sum, t) => sum + parseFloat(t.pnl || '0'), 0);
+  const wins = closedTrades.filter(t => parseFloat(t.pnl || '0') > 0);
+  const losses = closedTrades.filter(t => parseFloat(t.pnl || '0') < 0);
+
+  const winRate = closedTrades.length > 0 ? (wins.length / closedTrades.length) * 100 : 0;
+  const grossProfit = wins.reduce((sum, t) => sum + parseFloat(t.pnl || '0'), 0);
+  const grossLoss = Math.abs(losses.reduce((sum, t) => sum + parseFloat(t.pnl || '0'), 0));
+  const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : null;
+
+  const totalR = closedTrades.reduce((sum, t) => sum + parseFloat(t.rMultiple || '0'), 0);
+  const averageR = closedTrades.length > 0 ? totalR / closedTrades.length : 0;
+
+  return {
+    netPnl: formatMoney(totalPnl.toFixed(10)),
+    winRate: Number(winRate.toFixed(2)),
+    profitFactor: profitFactor !== null ? profitFactor.toFixed(4) : null,
+    averageR: averageR.toFixed(4),
+  };
+}
