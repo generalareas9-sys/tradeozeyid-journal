@@ -121,7 +121,7 @@ function applyBaseFilters(
   options: {
     from?: Date;
     to?: Date;
-    accountId?: string;
+    accountId?: string | string[];
     status?: string[];
     direction?: string[];
     session?: string[];
@@ -140,7 +140,10 @@ function applyBaseFilters(
 ) {
   const conditions = [eq(trades.userId, userId), isNull(trades.deletedAt)];
 
-  if (options.accountId) conditions.push(eq(trades.accountId, options.accountId));
+  if (options.accountId) {
+    const accountIds = Array.isArray(options.accountId) ? options.accountId : [options.accountId];
+    conditions.push(inArray(trades.accountId, accountIds));
+  }
   if (options.from) conditions.push(gte(trades.entryTime, options.from));
   if (options.to) conditions.push(lte(trades.entryTime, options.to));
   if (options.status?.length) conditions.push(inArray(trades.status, options.status as ('planned' | 'open' | 'closed' | 'cancelled')[]));
