@@ -29,7 +29,13 @@ export type RouteKind =
   /** Tags list (Phase 7). */
   | 'tags'
   /** Analytics breakdown views (Phase 9). */
-  | 'analytics';
+  | 'analytics'
+  /** Risk calculator (Phase 10). */
+  | 'risk'
+  /** Reports and export (Phase 12). */
+  | 'reports'
+  /** Journal and reviews (Phase 11). */
+  | 'journal';
 
 export interface AppRoute {
   /** Absolute path. `:param` segments are supported for nested screens. */
@@ -114,7 +120,7 @@ export const routes: readonly AppRoute[] = [
       'The daily journal entry with emotions attached, grouped by your timezone. Part of the TradeOzeyid workspace.',
     phase: 11,
     group: 'workspace',
-    kind: 'placeholder',
+    kind: 'journal',
   },
   {
     path: '/reviews',
@@ -123,7 +129,7 @@ export const routes: readonly AppRoute[] = [
       'Daily, weekly and monthly written reviews and psychology reports. Part of the TradeOzeyid workspace.',
     phase: 11,
     group: 'workspace',
-    kind: 'placeholder',
+    kind: 'journal',
   },
   {
     path: '/analytics',
@@ -141,7 +147,16 @@ export const routes: readonly AppRoute[] = [
       'Position sizing from stop-loss distance, contract size and lot step. Part of the TradeOzeyid workspace.',
     phase: 10,
     group: 'workspace',
-    kind: 'placeholder',
+    kind: 'risk',
+  },
+  {
+    path: '/reports',
+    title: 'Reports',
+    description:
+      'Trading reports with filters, performance breakdowns and CSV export. Part of the TradeOzeyid workspace.',
+    phase: 12,
+    group: 'workspace',
+    kind: 'reports',
   },
   {
     path: '/foundation',
