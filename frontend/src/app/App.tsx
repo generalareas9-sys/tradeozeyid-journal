@@ -22,6 +22,7 @@ import { TradeDetailPage } from '../features/trades/TradeDetailPage';
 import { StrategyListPage } from '../features/strategies/StrategyListPage';
 import { StrategyDetailPage } from '../features/strategies/StrategyDetailPage';
 import { TagListPage } from '../features/tags/TagListPage';
+import { AnalyticsPage } from '../features/analytics/AnalyticsPage';
 import { matchRoute, navigate, usePathname } from './router';
 
 /**
@@ -73,6 +74,8 @@ function WorkspaceView({ route }: { route: AppRoute }) {
       return <StrategyListPage />;
     case 'tags':
       return <TagListPage />;
+    case 'analytics':
+      return <AnalyticsPage />;
     default:
       return <PlaceholderPage phase={route.phase} description={route.description} />;
   }
