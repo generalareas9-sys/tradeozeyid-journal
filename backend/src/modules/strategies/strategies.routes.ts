@@ -102,11 +102,33 @@ router.get('/:id', (req, res, next) => {
       next(error);
     });
 });
-
+ 
+ /**
+  * GET /strategies/:id/stats
+  *
+  * 200 → strategy statistics (netPnl, winRate, profitFactor, averageR).
+  * 404 if not owned by user.
+  */
+router.get('/:id/stats', (req, res, next) => {
+  const authReq = req as unknown as AuthenticatedRequest;
+ 
+  void service
+    .getStrategyStats(authReq.user.id, req.params.id)
+    .then((stats) => sendData(res, 200, stats))
+    .catch((error) => {
+      if (error instanceof NotFoundError) {
+        res.status(404).json({
+          error: { code: 'NOT_FOUND', message: 'Strategy not found' },
+          meta: { requestId: req.requestId },
+        });
+        return;
+      }
+      next(error);
+    });
+});
+ 
 /**
  * PATCH /strategies/:id
- *
- * Accepts same fields as create. Duplicate name → 409 CONFLICT.
  */
 router.patch('/:id', strictBody(patchStrategySchema), (req, res, next) => {
   const authReq = req as unknown as AuthenticatedRequest;
@@ -284,62 +306,6 @@ router.put('/:id/rules/order', strictBody(reorderRulesSchema), (req, res, next) 
       if (error instanceof ValidationError) {
         res.status(400).json({
           error: { code: 'VALIDATION_ERROR', message: 'Request validation failed', details: error.details },
-          meta: { requestId: req.requestId },
-        });
-        return;
-      }
-      next(error);
-    });
-});
-
-/**
- * PATCH /strategies/:id/rules/:ruleId
- *
- * Accepts `text`, `isRequired`.
- */
-router.patch('/:id/rules/:ruleId', strictBody(patchRuleParamSchema), (req, res, next) => {
-  const authReq = req as unknown as AuthenticatedRequest;
-
-  void service
-    .updateRule(authReq.user.id, req.params.id, req.params.ruleId, req.body, authReq)
-    .then((rule) => sendData(res, 200, rule))
-    .catch((error) => {
-      if (error instanceof NotFoundError) {
-        res.status(404).json({
-          error: { code: 'NOT_FOUND', message: 'Strategy or rule not found' },
-          meta: { requestId: req.requestId },
-        });
-        return;
-      }
-      if (error instanceof ValidationError) {
-        res.status(400).json({
-          error: { code: 'VALIDATION_ERROR', message: 'Request validation failed', details: error.details },
-          meta: { requestId: req.requestId },
-        });
-        return;
-      }
-      next(error);
-    });
-});
-
-/**
- * DELETE /strategies/:id/rules/:ruleId
- *
- * Deletes rule and closes the gap in positions. 204.
- */
-router.delete('/:id/rules/:ruleId', (req, res, next) => {
-  const authReq = req as unknown as AuthenticatedRequest;
-
-  void service
-    .deleteRule(authReq.user.id, req.params.id, req.params.ruleId, authReq)
-    .then(() => {
-      noStore(res);
-      res.status(204).end();
-    })
-    .catch((error) => {
-      if (error instanceof NotFoundError) {
-        res.status(404).json({
-          error: { code: 'NOT_FOUND', message: 'Strategy or rule not found' },
           meta: { requestId: req.requestId },
         });
         return;
