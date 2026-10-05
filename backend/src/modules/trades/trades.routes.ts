@@ -14,12 +14,10 @@ import {
   listTradesQuerySchema,
   tradeTagsSchema,
 } from './trades.schema.js';
+import tradeReviewRoutes from './trade-reviews.routes.js';
 
 /**
  * `/trades` routes (api-spec.md §9.4).
- *
- * Handlers stay thin: they validate, delegate to the service and write the
- * documented envelope. No business logic lives here.
  */
 const router = Router();
 
@@ -342,5 +340,10 @@ router.delete('/:id/tags', (req, res, next) => {
       next(error);
     });
 });
+
+/**
+ * Trade review routes (GET/PUT /trades/:id/review)
+ */
+router.use('/:id/review', tradeReviewRoutes);
 
 export default router;
