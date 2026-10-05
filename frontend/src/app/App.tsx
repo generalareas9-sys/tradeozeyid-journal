@@ -23,6 +23,10 @@ import { StrategyListPage } from '../features/strategies/StrategyListPage';
 import { StrategyDetailPage } from '../features/strategies/StrategyDetailPage';
 import { TagListPage } from '../features/tags/TagListPage';
 import { AnalyticsPage } from '../features/analytics/AnalyticsPage';
+import { RiskCalculatorPage } from '../features/risk/RiskCalculatorPage';
+import { ReportsPage } from '../features/reports/ReportsPage';
+import { JournalPage } from '../features/journal/JournalPage';
+import { ReviewsPage } from '../features/journal/ReviewsPage';
 import { matchRoute, navigate, usePathname } from './router';
 
 /**
@@ -76,6 +80,18 @@ function WorkspaceView({ route }: { route: AppRoute }) {
       return <TagListPage />;
     case 'analytics':
       return <AnalyticsPage />;
+    case 'risk':
+      return <RiskCalculatorPage />;
+    case 'reports':
+      return <ReportsPage />;
+    case 'journal':
+      if (route.path === '/journal') {
+        return <JournalPage />;
+      }
+      if (route.path === '/reviews') {
+        return <ReviewsPage />;
+      }
+      return <PlaceholderPage phase={route.phase} description={route.description} />;
     default:
       return <PlaceholderPage phase={route.phase} description={route.description} />;
   }
