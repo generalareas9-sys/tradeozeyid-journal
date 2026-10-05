@@ -5,6 +5,7 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/**/*.test.ts'],
     setupFiles: ['./tests/setup-env.ts'],
+    globalSetup: ['./tests/global-setup.ts'],
     // The migration test tears the test database down and rebuilds it, so test
     // files must not run concurrently.
     fileParallelism: false,
