@@ -27,7 +27,9 @@ export type RouteKind =
   /** Strategies list and detail (Phase 7). */
   | 'strategies'
   /** Tags list (Phase 7). */
-  | 'tags';
+  | 'tags'
+  /** Analytics breakdown views (Phase 9). */
+  | 'analytics';
 
 export interface AppRoute {
   /** Absolute path. `:param` segments are supported for nested screens. */
@@ -130,7 +132,7 @@ export const routes: readonly AppRoute[] = [
       'Performance, strategy, session, symbol, direction and tag analytics. Part of the TradeOzeyid workspace.',
     phase: 9,
     group: 'workspace',
-    kind: 'placeholder',
+    kind: 'analytics',
   },
   {
     path: '/risk',
