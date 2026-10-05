@@ -2,6 +2,8 @@ import { and, count, desc, eq, gt, inArray, isNull, lt, ne, sql, sum } from 'dri
 import { getDb } from '../../db/index.js';
 import { strategies, strategyRules, trades } from '../../db/schema/trading.js';
 import { ConflictError, NotFoundError } from '../../lib/errors.js';
+import { generateId } from '../../lib/ids.js';
+import { formatMoney } from '../../lib/money.js';
 
 /**
  * Strategies data access (engineering-contract.md §5.5, §7.14).
@@ -184,6 +186,7 @@ export async function insertStrategy(
     .insert(strategies)
     .values({
       ...input,
+      id: generateId(),
       userId,
       createdAt: now,
       updatedAt: now,
@@ -474,8 +477,6 @@ export async function deleteRuleById(strategyId: string, ruleId: string): Promis
     );
 }
 
-import { generateId } from '../../lib/ids.js';
-import { formatMoney } from '../../lib/money.js';
 
 /**
  * Gets strategy statistics.
