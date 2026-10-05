@@ -52,7 +52,7 @@ export interface StrategyRuleResource {
   updatedAt: string;
 }
 
-function toResource(row: any & { rules: any[]; tradeCount: number }): any {
+function toResource(row: any & { rules: any[]; tradeCount: number; stats?: any }): any {
   return {
     id: row.id,
     name: row.name,
@@ -69,7 +69,7 @@ function toResource(row: any & { rules: any[]; tradeCount: number }): any {
       updatedAt: r.updatedAt.toISOString(),
     })),
     tradeCount: row.tradeCount,
-    stats: null,
+    stats: row.stats ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     deletedAt: row.deletedAt?.toISOString() ?? null,
@@ -156,7 +156,16 @@ export async function listStrategies(
   options: { status?: 'active' | 'archived'; q?: string; limit?: number; offset?: number; sort?: string; order?: 'asc' | 'desc' } = {}
 ) {
   const rows = await repo.listStrategies(userId, options);
-  return rows.map(toResource);
+  
+  // Fetch stats for each strategy
+  const strategiesWithStats = await Promise.all(
+    rows.map(async (row) => {
+      const stats = await repo.getStrategyStats(userId, row.id);
+      return toResource({ ...row, stats });
+    })
+  );
+  
+  return strategiesWithStats;
 }
 
 /**
@@ -165,7 +174,17 @@ export async function listStrategies(
 export async function getStrategy(userId: string, id: string) {
   const result = await repo.getStrategyWithRules(userId, id);
   if (!result) throw new NotFoundError('Strategy not found');
-  return toResource({ ...result.strategy, rules: result.rules, tradeCount: result.tradeCount });
+  const stats = await repo.getStrategyStats(userId, id);
+  return toResource({ ...result.strategy, rules: result.rules, tradeCount: result.tradeCount, stats });
+}
+
+/**
+ * Gets strategy statistics.
+ */
+export async function getStrategyStats(userId: string, id: string) {
+  const stats = await repo.getStrategyStats(userId, id);
+  if (!stats) return null;
+  return stats;
 }
 
 /**
