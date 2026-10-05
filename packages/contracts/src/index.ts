@@ -361,3 +361,155 @@ export interface RiskCalculateResponse {
   riskPercentActual: string;
   warnings: string[];
 }
+
+// Analytics types (Phase 9)
+export interface DashboardMetricsResource {
+  currency: string;
+  netPnl: string;
+  winRate: number;
+  lossRate: number;
+  profitFactor: string | null;
+  averageR: string;
+  totalTrades: number;
+  closedTrades: number;
+  openTrades: number;
+  bestTrade: string;
+  worstTrade: string;
+  averageWin: string;
+  averageLoss: string;
+  maxDrawdownPercent: number;
+  maxDrawdownAmount: string;
+  totalR: string;
+}
+
+export interface EquityPointResource {
+  timestamp: string;
+  date: string;
+  pnl: string;
+  equity: string;
+  drawdownPercent: number;
+}
+
+export interface DrawdownPointResource {
+  date: string;
+  drawdownPercent: number;
+}
+
+export interface CalendarDayResource {
+  date: string;
+  pnl: string;
+  tradeCount: number;
+  winRate: number;
+  rMultiple: string;
+  hasJournal: boolean;
+}
+
+export interface RecentTradeResource {
+  id: string;
+  symbol: string;
+  direction: TradeDirection;
+  entryTime: string;
+  exitTime: string | null;
+  pnl: string | null;
+  rMultiple: string | null;
+  status: TradeStatus;
+}
+
+export interface SessionStatsResource {
+  key: string;
+  pnl: string;
+  tradeCount: number;
+  winRate: number;
+}
+
+export interface BreakdownItemResource {
+  key: string;
+  secondaryKey: string | null;
+  tradeCount: number;
+  closedTrades: number;
+  netPnl: string;
+  winRate: number;
+  profitFactor: string | null;
+  averageR: string;
+  averageWin: string;
+  averageLoss: string;
+}
+
+export interface StreaksResource {
+  currentWinStreak: number;
+  currentLossStreak: number;
+  maxWinStreak: number;
+  maxLossStreak: number;
+  maxDrawdownStreak: number;
+  winStreakHistory: Array<{
+    start: string;
+    end: string;
+    length: number;
+    pnl: string;
+  }>;
+  lossStreakHistory: Array<{
+    start: string;
+    end: string;
+    length: number;
+    pnl: string;
+  }>;
+}
+
+export interface SessionsResource {
+  bySession: SessionStatsResource[];
+  byHour: Array<{
+    hour: number;
+    tradeCount: number;
+    netPnl: string;
+    winRate: number;
+  }>;
+}
+
+export interface DashboardResource {
+  metrics: DashboardMetricsResource;
+  equityCurve: EquityPointResource[];
+  drawdown: DrawdownPointResource[];
+  calendar: CalendarDayResource[];
+  recentTrades: RecentTradeResource[];
+  bySession: SessionStatsResource[];
+}
+
+export type AnalyticsDimension =
+  | 'day'
+  | 'week'
+  | 'month'
+  | 'dayOfWeek'
+  | 'timeOfDay'
+  | 'strategy'
+  | 'symbol'
+  | 'session'
+  | 'direction'
+  | 'tag'
+  | 'riskBucket'
+  | 'streak'
+  | 'emotion';
+
+export interface AnalyticsBreakdownRequest {
+  dimension: AnalyticsDimension;
+  accountId?: string;
+  from?: string;
+  to?: string;
+  status?: TradeStatus[];
+  direction?: TradeDirection[];
+  session?: MarketSession[];
+  symbol?: string[];
+  strategyId?: string[];
+  tagId?: string[];
+  limit?: number;
+  sort?: string;
+  order?: 'asc' | 'desc';
+}
+
+export interface AnalyticsBreakdownResponse {
+  data: BreakdownItemResource[];
+  meta: {
+    requestId: string;
+    dimension: AnalyticsDimension;
+    filters: Record<string, unknown>;
+  };
+}
