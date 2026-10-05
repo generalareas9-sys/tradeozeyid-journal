@@ -2,7 +2,9 @@ import { Router } from 'express';
 import type { Response } from 'express';
 import { authMiddleware, type AuthenticatedRequest } from '../../middleware/auth.js';
 import { noStore } from '../../lib/cookies.js';
+import { strictBody } from '../../middleware/validate.js';
 import * as service from './dashboard.service.js';
+import * as exportService from './export.service.js';
 import {
   dashboardQuerySchema,
   analyticsSummaryQuerySchema,
@@ -13,6 +15,7 @@ import {
   streaksQuerySchema,
   sessionsQuerySchema,
 } from './dashboard.schema.js';
+import { exportRequestSchema } from './export.schema.js';
 
 /**
  * `/dashboard` routes (api-spec.md §9.7).
@@ -237,6 +240,52 @@ router.get('/by-session', (req, res, next) => {
   service
     .getSessionStats(authReq.user.id, {})
     .then((data) => sendData(res, 200, data))
+    .catch(next);
+});
+
+/**
+ * POST /analytics/trades/export
+ *
+ * Exports trades as CSV with configurable columns and filters.
+ * Body: { format: 'csv', columns: [...], filters: {...} }
+ * Returns text/csv with Content-Disposition: attachment
+ */
+router.post('/analytics/trades/export', strictBody(exportRequestSchema), (req, res, next) => {
+  const authReq = req as AuthenticatedRequest;
+  const body = exportRequestSchema.parse(req.body);
+
+  const from = body.filters?.from ? new Date(body.filters.from) : undefined;
+  const to = body.filters?.to ? new Date(body.filters.to) : undefined;
+
+  exportService
+    .generateCsvExport(authReq.user.id, body.columns, {
+      from,
+      to,
+      accountId: body.filters?.accountId,
+      symbol: body.filters?.symbol,
+      direction: body.filters?.direction,
+      strategyId: body.filters?.strategyId,
+      tagId: body.filters?.tagId,
+      session: body.filters?.session,
+      status: body.filters?.status,
+      minR: body.filters?.minR,
+      maxR: body.filters?.maxR,
+      minPnl: body.filters?.minPnl,
+      maxPnl: body.filters?.maxPnl,
+      emotionTagId: body.filters?.emotionTagId,
+      brokeRules: body.filters?.brokeRules,
+      hasAttachments: body.filters?.hasAttachments,
+      q: body.filters?.q,
+      timezone: body.filters?.timezone,
+      sort: 'entryTime',
+      order: 'desc',
+    })
+    .then(({ csv, filename }) => {
+      noStore(res);
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.status(200).send(csv);
+    })
     .catch(next);
 });
 
