@@ -68,7 +68,7 @@ export const dashboardQuerySchema = z
  */
 export const analyticsSummaryQuerySchema = z
   .object({
-    accountId: z.string().uuid().optional(),
+    accountId: z.array(z.string().uuid()).optional(),
     from: fromDate,
     to: toDate,
     symbol: z.array(z.string()).optional(),
