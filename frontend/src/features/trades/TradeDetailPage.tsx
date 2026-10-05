@@ -4,7 +4,12 @@ import { apiRequest } from '../../lib/api';
 import { formatMoney, NULL_PLACEHOLDER } from '../../lib/format';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { TradeResource } from '@tradeozeyid/contracts';
+import { Button } from '../../components/ui/Button';
+import { Dialog } from '../../components/ui/Dialog';
+import { Select } from '../../components/ui/Select';
+import { Input } from '../../components/ui/Input';
+import { useToast } from '../../components/ui/Toast';
+import { TradeResource, TradeReviewResource } from '@tradeozeyid/contracts';
 
 /**
  * Trade detail page (Phase 6).
@@ -17,13 +22,19 @@ import { TradeResource } from '@tradeozeyid/contracts';
  *  - Tags
  *  - Screenshots (attachments)
  *  - Notes
- *  - Review
+ *  - Review (with editable psychology form)
  */
 export function TradeDetailPage() {
   const pathname = usePathname();
   const [trade, setTrade] = useState<TradeResource | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [savingReview, setSavingReview] = useState(false);
+  const { show: toast } = useToast();
+
+  // Local review state for editing
+  const [reviewForm, setReviewForm] = useState<Partial<TradeReviewResource>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -42,7 +53,27 @@ export function TradeDetailPage() {
         }
 
         const data = await apiRequest<TradeResource>(`/trades/${id}`);
-        if (!cancelled) setTrade(data);
+        if (!cancelled) {
+          setTrade(data);
+          // Initialize review form with existing data
+          if (data.review) {
+            setReviewForm({
+              confidenceBefore: data.review.confidenceBefore,
+              fearBefore: data.review.fearBefore,
+              fomoBefore: data.review.fomoBefore,
+              patienceBefore: data.review.patienceBefore,
+              followedPlan: data.review.followedPlan,
+              brokeRules: data.review.brokeRules,
+              revengeTrade: data.review.revengeTrade,
+              overtraded: data.review.overtraded,
+              enteredEarly: data.review.enteredEarly,
+              movedStop: data.review.movedStop,
+              rulesFollowed: data.review.rulesFollowed,
+              rating: data.review.rating,
+              body: data.review.body,
+            });
+          }
+        }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'Failed to load trade');
@@ -58,6 +89,38 @@ export function TradeDetailPage() {
       cancelled = true;
     };
   }, [pathname]);
+
+  const saveReview = async () => {
+    if (!trade) return;
+
+    setSavingReview(true);
+    try {
+      const response = await fetch(`/api/v1/trades/${trade.id}/review`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] ?? '',
+        },
+        body: JSON.stringify(reviewForm),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message ?? 'Failed to save review');
+      }
+
+      const data = await response.json();
+      if (data.data) {
+        setTrade(prev => prev ? { ...prev, review: data.data } : null);
+        toast({ variant: 'success', title: 'Review saved' });
+        setReviewDialogOpen(false);
+      }
+    } catch (err) {
+      toast({ variant: 'error', title: err instanceof Error ? err.message : 'Failed to save review' });
+    } finally {
+      setSavingReview(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -329,50 +392,192 @@ export function TradeDetailPage() {
           {/* Review */}
           <Card title="Review">
             {t.review ? (
-              <dl className="space-y-3 text-sm">
-                {t.review.confidenceBefore !== null && (
-                  <div><dt className="text-text-muted">Confidence</dt><dd>{t.review.confidenceBefore}/5</dd></div>
-                )}
-                {t.review.fearBefore !== null && (
-                  <div><dt className="text-text-muted">Fear</dt><dd>{t.review.fearBefore}/5</dd></div>
-                )}
-                {t.review.fomoBefore !== null && (
-                  <div><dt className="text-text-muted">FOMO</dt><dd>{t.review.fomoBefore}/5</dd></div>
-                )}
-                {t.review.patienceBefore !== null && (
-                  <div><dt className="text-text-muted">Patience</dt><dd>{t.review.patienceBefore}/5</dd></div>
-                )}
-                {t.review.followedPlan !== null && (
-                  <div><dt className="text-text-muted">Followed plan</dt><dd><Badge variant={t.review.followedPlan ? 'positive' : 'negative'}>{t.review.followedPlan ? 'Yes' : 'No'}</Badge></dd></div>
-                )}
-                {t.review.brokeRules !== null && (
-                  <div><dt className="text-text-muted">Broke rules</dt><dd><Badge variant={t.review.brokeRules ? 'negative' : 'positive'}>{t.review.brokeRules ? 'Yes' : 'No'}</Badge></dd></div>
-                )}
-                {t.review.revengeTrade !== null && (
-                  <div><dt className="text-text-muted">Revenge trade</dt><dd><Badge variant={t.review.revengeTrade ? 'negative' : 'positive'}>{t.review.revengeTrade ? 'Yes' : 'No'}</Badge></dd></div>
-                )}
-                {t.review.overtraded !== null && (
-                  <div><dt className="text-text-muted">Overtraded</dt><dd><Badge variant={t.review.overtraded ? 'negative' : 'positive'}>{t.review.overtraded ? 'Yes' : 'No'}</Badge></dd></div>
-                )}
-                {t.review.enteredEarly !== null && (
-                  <div><dt className="text-text-muted">Entered early</dt><dd><Badge variant={t.review.enteredEarly ? 'negative' : 'positive'}>{t.review.enteredEarly ? 'Yes' : 'No'}</Badge></dd></div>
-                )}
-                {t.review.movedStop !== null && (
-                  <div><dt className="text-text-muted">Moved stop</dt><dd><Badge variant={t.review.movedStop ? 'negative' : 'positive'}>{t.review.movedStop ? 'Yes' : 'No'}</Badge></dd></div>
-                )}
-                {t.review.rulesFollowed !== null && (
-                  <div><dt className="text-text-muted">Rules followed</dt><dd>{t.review.rulesFollowed}%</dd></div>
-                )}
-                {t.review.rating !== null && (
-                  <div><dt className="text-text-muted">Rating</dt><dd>{t.review.rating}/5</dd></div>
-                )}
-                {t.review.body && (
-                  <div className="mt-3"><dt className="text-text-muted">Notes</dt><dd className="whitespace-pre-wrap mt-1">{t.review.body}</dd></div>
-                )}
-              </dl>
+              <>
+                <dl className="space-y-3 text-sm">
+                  {t.review.confidenceBefore !== null && (
+                    <div><dt className="text-text-muted">Confidence</dt><dd>{t.review.confidenceBefore}/5</dd></div>
+                  )}
+                  {t.review.fearBefore !== null && (
+                    <div><dt className="text-text-muted">Fear</dt><dd>{t.review.fearBefore}/5</dd></div>
+                  )}
+                  {t.review.fomoBefore !== null && (
+                    <div><dt className="text-text-muted">FOMO</dt><dd>{t.review.fomoBefore}/5</dd></div>
+                  )}
+                  {t.review.patienceBefore !== null && (
+                    <div><dt className="text-text-muted">Patience</dt><dd>{t.review.patienceBefore}/5</dd></div>
+                  )}
+                  {t.review.followedPlan !== null && (
+                    <div><dt className="text-text-muted">Followed plan</dt><dd><Badge variant={t.review.followedPlan ? 'positive' : 'negative'}>{t.review.followedPlan ? 'Yes' : 'No'}</Badge></dd></div>
+                  )}
+                  {t.review.brokeRules !== null && (
+                    <div><dt className="text-text-muted">Broke rules</dt><dd><Badge variant={t.review.brokeRules ? 'negative' : 'positive'}>{t.review.brokeRules ? 'Yes' : 'No'}</Badge></dd></div>
+                  )}
+                  {t.review.revengeTrade !== null && (
+                    <div><dt className="text-text-muted">Revenge trade</dt><dd><Badge variant={t.review.revengeTrade ? 'negative' : 'positive'}>{t.review.revengeTrade ? 'Yes' : 'No'}</Badge></dd></div>
+                  )}
+                  {t.review.overtraded !== null && (
+                    <div><dt className="text-text-muted">Overtraded</dt><dd><Badge variant={t.review.overtraded ? 'negative' : 'positive'}>{t.review.overtraded ? 'Yes' : 'No'}</Badge></dd></div>
+                  )}
+                  {t.review.enteredEarly !== null && (
+                    <div><dt className="text-text-muted">Entered early</dt><dd><Badge variant={t.review.enteredEarly ? 'negative' : 'positive'}>{t.review.enteredEarly ? 'Yes' : 'No'}</Badge></dd></div>
+                  )}
+                  {t.review.movedStop !== null && (
+                    <div><dt className="text-text-muted">Moved stop</dt><dd><Badge variant={t.review.movedStop ? 'negative' : 'positive'}>{t.review.movedStop ? 'Yes' : 'No'}</Badge></dd></div>
+                  )}
+                  {t.review.rulesFollowed !== null && (
+                    <div><dt className="text-text-muted">Rules followed</dt><dd>{t.review.rulesFollowed}%</dd></div>
+                  )}
+                  {t.review.rating !== null && (
+                    <div><dt className="text-text-muted">Rating</dt><dd>{t.review.rating}/5</dd></div>
+                  )}
+                  {t.review.body && (
+                    <div className="mt-3"><dt className="text-text-muted">Notes</dt><dd className="whitespace-pre-wrap mt-1">{t.review.body}</dd></div>
+                  )}
+                </dl>
+                <div className="mt-4 pt-4 border-t border-border">
+                  <Button variant="secondary" onClick={() => setReviewDialogOpen(true)}>
+                    Edit Review
+                  </Button>
+                </div>
+              </>
             ) : (
-              <p className="text-sm text-text-muted">No review written yet.</p>
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-sm text-text-muted">No review written yet.</p>
+                <Button onClick={() => setReviewDialogOpen(true)}>
+                  Add Review
+                </Button>
+              </div>
             )}
+
+            <Dialog open={reviewDialogOpen} onClose={() => setReviewDialogOpen(false)} title="Trade Psychology Review">
+              <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); saveReview(); }}>
+                <div className="grid grid-cols-2 gap-4">
+                  <Select
+                    label="Confidence (1-5)"
+                    value={reviewForm.confidenceBefore !== undefined ? String(reviewForm.confidenceBefore) : ''}
+                    onChange={(e) => setReviewForm({ ...reviewForm, confidenceBefore: e.target.value ? parseInt(e.target.value, 10) : null })}
+                    options={['', '1', '2', '3', '4', '5'].map(v => ({ value: v, label: v || '—' }))}
+                    placeholder="Select"
+                  />
+                  <Select
+                    label="Fear (1-5)"
+                    value={reviewForm.fearBefore !== undefined ? String(reviewForm.fearBefore) : ''}
+                    onChange={(e) => setReviewForm({ ...reviewForm, fearBefore: e.target.value ? parseInt(e.target.value, 10) : null })}
+                    options={['', '1', '2', '3', '4', '5'].map(v => ({ value: v, label: v || '—' }))}
+                    placeholder="Select"
+                  />
+                  <Select
+                    label="FOMO (1-5)"
+                    value={reviewForm.fomoBefore !== undefined ? String(reviewForm.fomoBefore) : ''}
+                    onChange={(e) => setReviewForm({ ...reviewForm, fomoBefore: e.target.value ? parseInt(e.target.value, 10) : null })}
+                    options={['', '1', '2', '3', '4', '5'].map(v => ({ value: v, label: v || '—' }))}
+                    placeholder="Select"
+                  />
+                  <Select
+                    label="Patience (1-5)"
+                    value={reviewForm.patienceBefore !== undefined ? String(reviewForm.patienceBefore) : ''}
+                    onChange={(e) => setReviewForm({ ...reviewForm, patienceBefore: e.target.value ? parseInt(e.target.value, 10) : null })}
+                    options={['', '1', '2', '3', '4', '5'].map(v => ({ value: v, label: v || '—' }))}
+                    placeholder="Select"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Rules followed (%)"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={reviewForm.rulesFollowed !== undefined ? String(reviewForm.rulesFollowed) : ''}
+                    onChange={(e) => setReviewForm({ ...reviewForm, rulesFollowed: e.target.value ? parseInt(e.target.value, 10) : null })}
+                    placeholder="0-100"
+                  />
+                  <Select
+                    label="Rating (1-5)"
+                    value={reviewForm.rating !== undefined ? String(reviewForm.rating) : ''}
+                    onChange={(e) => setReviewForm({ ...reviewForm, rating: e.target.value ? parseInt(e.target.value, 10) : null })}
+                    options={['', '1', '2', '3', '4', '5'].map(v => ({ value: v, label: v || '—' }))}
+                    placeholder="Select"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <p className="font-medium text-text">Behavioral Flags</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={reviewForm.followedPlan === true}
+                        onChange={(e) => setReviewForm({ ...reviewForm, followedPlan: e.target.checked ? true : null })}
+                      />
+                      <span className="text-sm text-text">Followed plan</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={reviewForm.brokeRules === true}
+                        onChange={(e) => setReviewForm({ ...reviewForm, brokeRules: e.target.checked ? true : null })}
+                      />
+                      <span className="text-sm text-text">Broke rules</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={reviewForm.revengeTrade === true}
+                        onChange={(e) => setReviewForm({ ...reviewForm, revengeTrade: e.target.checked ? true : null })}
+                      />
+                      <span className="text-sm text-text">Revenge trade</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={reviewForm.overtraded === true}
+                        onChange={(e) => setReviewForm({ ...reviewForm, overtraded: e.target.checked ? true : null })}
+                      />
+                      <span className="text-sm text-text">Overtraded</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={reviewForm.enteredEarly === true}
+                        onChange={(e) => setReviewForm({ ...reviewForm, enteredEarly: e.target.checked ? true : null })}
+                      />
+                      <span className="text-sm text-text">Entered early</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={reviewForm.movedStop === true}
+                        onChange={(e) => setReviewForm({ ...reviewForm, movedStop: e.target.checked ? true : null })}
+                      />
+                      <span className="text-sm text-text">Moved stop</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="review-body" className="text-sm font-medium text-text">
+                    Notes
+                  </label>
+                  <textarea
+                    id="review-body"
+                    value={reviewForm.body ?? ''}
+                    onChange={(e) => setReviewForm({ ...reviewForm, body: e.target.value })}
+                    className="w-full min-h-[80px] px-3 py-2 border border-border-strong rounded-lg bg-card text-text placeholder:text-text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent resize-y"
+                    placeholder="Additional notes..."
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button type="button" variant="ghost" onClick={() => setReviewDialogOpen(false)} disabled={savingReview}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={savingReview} loading={savingReview}>
+                    Save Review
+                  </Button>
+                </div>
+              </form>
+            </Dialog>
           </Card>
 
           {/* Attachments */}
