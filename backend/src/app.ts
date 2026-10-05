@@ -15,6 +15,7 @@ import tradingAccountsRoutes from './modules/trading-accounts/trading-accounts.r
 import tradesRoutes from './modules/trades/trades.routes.js';
 import strategiesRoutes from './modules/strategies/strategies.routes.js';
 import tagsRoutes from './modules/tags/tags.routes.js';
+import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 
 interface AppOptions {
   authMode?: 'cookie' | 'bearer';
@@ -92,6 +93,7 @@ const apiRouter = express.Router();
   apiRouter.use('/trades', tradesRoutes);
   apiRouter.use('/strategies', strategiesRoutes);
   apiRouter.use('/tags', tagsRoutes);
+  apiRouter.use('/dashboard', dashboardRoutes);
 
   app.use('/api/v1', apiRouter);
 
